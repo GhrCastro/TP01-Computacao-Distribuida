@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Proposta do DebugMesh, pipeline distribuído de análise de logs e agentes de diagnóstico.">
+  <title>DebugMesh — Proposta de Trabalho</title>
+  <style>
+    :root { --ink:#152238; --muted:#516176; --paper:#f6f8fc; --card:#fff; --line:#dbe3ee; --accent:#5b45e7; --accent2:#00a58a; --warm:#ffb454; --shadow:0 14px 38px rgba(30,48,75,.10); }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; }
+    .hero { color:#fff; padding:76px max(24px,calc((100% - 1120px)/2)); background:radial-gradient(circle at 80% 15%,#08a98e 0,transparent 31%),radial-gradient(circle at 15% 85%,#7762f4 0,transparent 35%),#14233a; }
+    .eyebrow { color:#9deee1; font-size:.8rem; letter-spacing:.14em; font-weight:800; text-transform:uppercase; } h1 { font-size:clamp(2.7rem,7vw,5.5rem); line-height:.95; letter-spacing:-.065em; margin:.4rem 0 1.2rem; } .hero p { max-width:700px; color:#dce8f6; font-size:1.16rem; }
+    .chips { display:flex; flex-wrap:wrap; gap:9px; margin-top:28px; } .chip { border:1px solid rgba(255,255,255,.23); padding:6px 12px; border-radius:999px; font-size:.86rem; }
+    nav { position:sticky; top:0; z-index:10; border-bottom:1px solid var(--line); background:rgba(255,255,255,.92); backdrop-filter:blur(10px); } nav div { max-width:1120px; padding:11px 24px; margin:auto; overflow:auto; white-space:nowrap; } nav a { color:var(--muted); text-decoration:none; font-size:.88rem; font-weight:700; margin-right:20px; } nav a:hover { color:var(--accent); }
+    main { max-width:1120px; margin:auto; padding:50px 24px 80px; } section { scroll-margin-top:70px; margin:0 0 55px; } h2 { font-size:clamp(1.7rem,3vw,2.5rem); letter-spacing:-.04em; line-height:1.08; margin:0 0 16px; } h3 { margin-bottom:5px; } p { color:var(--muted); } .lead { max-width:790px; font-size:1.12rem; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:18px; } .card { grid-column:span 4; padding:24px; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:0 3px 12px rgba(30,48,75,.035); } .card p { margin:.35rem 0 0; font-size:.93rem; } .card strong { color:var(--accent); }
+    .diagram { background:#102039; color:#ecf5ff; border-radius:18px; padding:28px; overflow:auto; box-shadow:var(--shadow); } .diagram pre { margin:0; min-width:720px; color:#bfeadd; font:600 14px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .timeline { border-left:2px solid #c9c0ff; margin:20px 0 0 10px; padding-left:28px; } .step { position:relative; padding:0 0 25px; } .step:before { content:""; position:absolute; left:-36px; top:5px; width:14px; height:14px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 5px #ece9ff; } .step b { display:block; }
+    table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; } th,td { text-align:left; vertical-align:top; padding:15px; border-bottom:1px solid var(--line); } th { background:#eef2f8; font-size:.86rem; text-transform:uppercase; letter-spacing:.06em; color:#3e4d61; } tr:last-child td { border:0; }
+    .callout { border-left:5px solid var(--warm); border-radius:0 12px 12px 0; background:#fff9ef; padding:17px 20px; color:#5c4827; } .callout p { color:inherit; margin:0; }
+    .issue-list { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; } .issue { display:block; padding:16px; border-radius:12px; text-decoration:none; background:#fff; color:var(--ink); border:1px solid var(--line); transition:transform .15s,box-shadow .15s; } .issue:hover { transform:translateY(-3px); box-shadow:var(--shadow); } .issue span { color:var(--accent); font-weight:800; font-size:.85rem; display:block; }
+    footer { color:#dfe9f7; background:#14233a; padding:35px 24px; text-align:center; } footer a { color:#a9eee4; }
+    @media(max-width:720px) { .hero { padding-top:55px; } .card { grid-column:span 12; } .issue-list { grid-template-columns:1fr; } th,td { padding:11px; font-size:.9rem; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="eyebrow">Proposta de trabalho · Computação Distribuída · 2026.2</div>
+    <h1>DebugMesh</h1>
+    <p>Um pipeline distribuído que transforma logs dispersos em diagnósticos técnicos rastreáveis, com agentes especializados, comunicação RPC e mecanismos de coordenação.</p>
+    <div class="chips"><span class="chip">gRPC</span><span class="chip">Relógios lógicos</span><span class="chip">Eleição de líder</span><span class="chip">Tolerância a falhas</span></div>
+  </header>
+  <nav><div><a href="#problema">Problema</a><a href="#arquitetura">Arquitetura</a><a href="#mecanismos">Mecanismos</a><a href="#entrega1">Entrega 1</a><a href="#entrega2">Entrega 2</a><a href="#demonstracao">Demonstração</a></div></nav>
+  <main>
+    <section id="problema"><h2>O que queremos resolver</h2><p class="lead">Durante um incidente, erros podem aparecer em serviços, testes e infraestrutura ao mesmo tempo. O DebugMesh divide essa investigação em unidades paralelas, distribui a análise entre nós e produz uma hipótese de causa raiz baseada em evidências.</p><div class="grid"><article class="card"><strong>Entrada</strong><h3>Logs e eventos</h3><p>Arquivos sintéticos ou logs de uma aplicação de exemplo, com exceções, falhas de testes e timeouts.</p></article><article class="card"><strong>Processamento</strong><h3>Agentes especializados</h3><p>Workers analisam categorias de sinais em paralelo e retornam diagnósticos estruturados.</p></article><article class="card"><strong>Saída</strong><h3>Diagnóstico revisável</h3><p>Hipótese, evidências, confiança, sugestão de correção e teste sugerido — sem editar código automaticamente.</p></article></div></section>
+    <section id="arquitetura"><h2>Arquitetura distribuída</h2><p>O coordenador líder cria tarefas e distribui lotes por gRPC. Os workers podem ser executados como processos ou containers separados; o agregador consolida seus retornos.</p><div class="diagram"><pre>Fonte de logs / GitHub Actions (opcional)
+                    │
+                    ▼
+         ┌───────────────────────┐
+         │ Coordenador líder     │
+         │ fila · partição ·     │
+         │ estado das tarefas    │
+         └──────────┬────────────┘
+                    │ gRPC
+      ┌─────────────┼─────────────┐
+      ▼             ▼             ▼
+┌───────────┐ ┌───────────┐ ┌───────────┐
+│ Exceções  │ │ Testes    │ │ Infra /   │
+│ worker    │ │ worker    │ │ performance│
+└─────┬─────┘ └─────┬─────┘ └─────┬─────┘
+      └─────────────┼─────────────┘
+                    ▼
+         ┌───────────────────────┐
+         │ Agregador: diagnóstico│
+         │ consolidado           │
+         └───────────────────────┘</pre></div></section>
+    <section id="mecanismos"><h2>Mecanismos distribuídos</h2><table><thead><tr><th>Mecanismo</th><th>Aplicação no DebugMesh</th></tr></thead><tbody><tr><td>gRPC / RPC</td><td>Contratos para submissão de logs, atribuição de tarefas, resultados, status e heartbeats entre processos independentes.</td></tr><tr><td>Relógios lógicos</td><td>Cada mensagem recebe timestamp de Lamport; a linha do tempo permite observar a ordem causal dos diagnósticos.</td></tr><tr><td>Eleição de líder</td><td>Coordenadores candidatos elegem quem pode distribuir novas tarefas quando ocorre inicialização concorrente ou queda do líder.</td></tr><tr><td>Tratamento de falhas</td><td>Na evolução: timeout, heartbeat, reatribuição de lote e proteção contra resultados duplicados.</td></tr></tbody></table></section>
+    <section id="entrega1"><h2>Primeira entrega · 1º de novembro de 2026</h2><p class="lead">O objetivo é ter um fluxo completo, pequeno e demonstrável: múltiplos nós, diagnóstico estruturado e os mecanismos de comunicação e coordenação visíveis na execução.</p><div class="timeline"><div class="step"><b>1. Delimitar cenário e dados</b>Definir tema, conjunto de logs e o MVP que será apresentado.</div><div class="step"><b>2. Fazer os nós conversarem</b>Subir coordenador e workers com gRPC e executar uma análise.</div><div class="step"><b>3. Dar ordem aos eventos</b>Registrar timestamps lógicos em mensagens, tarefas e resultados.</div><div class="step"><b>4. Coordenar o sistema</b>Demonstrar eleição de líder e consolidar o diagnóstico final.</div></div><h3>Responsabilidades rastreáveis</h3><div class="issue-list"><a class="issue" href="https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/7"><span>Integrante 1 · Issue #7</span>Tema, escopo e relatório-base</a><a class="issue" href="https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/8"><span>Integrante 2 · Issue #8</span>Arquitetura, gRPC/RPC e coordenador</a><a class="issue" href="https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/9"><span>Integrante 3 · Issue #9</span>Relógios lógicos e testes de ordenação</a><a class="issue" href="https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/10"><span>Integrante 4 · Issue #10</span>Eleição de líder, integração e demonstração</a></div></section>
+    <section id="entrega2"><h2>Evolução prevista</h2><div class="grid"><article class="card"><strong>Resiliência</strong><h3>Falhas reais</h3><p>Heartbeats, timeouts e redistribuição de tarefas quando um worker não conclui seu lote.</p></article><article class="card"><strong>Estado</strong><h3>Réplica e consistência</h3><p>Preservar a fila de tarefas e impedir que retries produzam dois resultados aceitos para a mesma análise.</p></article><article class="card"><strong>Métrica</strong><h3>Desempenho</h3><p>Comparar análise sequencial e distribuída com diferentes quantidades de agentes.</p></article></div></section>
+    <section id="demonstracao"><h2>Como será demonstrado</h2><ol><li>Subir coordenador e três workers via Docker Compose ou comandos locais.</li><li>Enviar um conjunto de logs com exceção, falha de teste e timeout.</li><li>Visualizar a distribuição de lotes, timestamps e resultados parciais.</li><li>Consultar o diagnóstico consolidado.</li><li>Interromper um nó para demonstrar a coordenação e, na segunda entrega, a recuperação.</li></ol><aside class="callout"><p><strong>GitHub Actions é opcional.</strong> Ele pode coletar logs de uma falha de CI e chamar o coordenador, mas não é o sistema distribuído. O projeto funciona localmente sem GitHub ou credenciais de IA externas.</p></aside></section>
+  </main>
+  <footer>DebugMesh · Proposta para Computação Distribuída · <a href="https://github.com/GhrCastro/TP01-Computacao-Distribuida">Ver repositório</a></footer>
+</body>
+</html>
