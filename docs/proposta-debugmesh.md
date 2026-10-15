@@ -154,11 +154,22 @@ As tarefas rastreáveis estão nas issues [#7](https://github.com/GhrCastro/TP01
 | Consistência | Garantir que uma tarefa tenha somente um resultado aceito, apesar de retry ou reexecução. |
 | Desempenho | Comparar tempo de análise sequencial e distribuída com diferentes números de workers. |
 
-## 10. GitHub Actions: papel opcional
+## 10. Evolução desejada
+
+Em uma evolução posterior, os agentes poderão ganhar autonomia controlada para investigar uma hipótese de correção em um ambiente isolado. O fluxo desejado é:
+
+1. o diagnóstico consolidado gera uma proposta de alteração, sempre revisável por uma pessoa;
+2. um agente cria uma branch de trabalho específica para o incidente;
+3. o agente instancia um ambiente isolado para aplicar a proposta e executar os testes relevantes;
+4. os resultados — diff, logs de teste, diagnóstico e limitações — são anexados à proposta para revisão humana.
+
+O ambiente isolado poderá ser uma sandbox baseada em containers, uma microVM ou outra solução apropriada. A tecnologia será escolhida futuramente após avaliar isolamento, custo, tempo de inicialização, suporte às linguagens do projeto e facilidade de reprodução. Esta evolução **não** autoriza merge, deploy ou alteração automática na branch principal: a aprovação humana continuará obrigatória.
+
+## 11. GitHub Actions: papel opcional
 
 GitHub Actions não será o sistema distribuído. Ele pode ser usado como gatilho de integração: após uma falha de testes ou execução manual, o workflow coleta logs e chama a API do coordenador. Isso aproxima a solução de um fluxo de desenvolvimento real, mas o sistema continuará executável localmente, inclusive sem acesso ao GitHub.
 
-## 11. Demonstração planejada
+## 12. Demonstração planejada
 
 1. Iniciar um coordenador e três workers com Docker Compose ou comandos locais.
 2. Submeter um arquivo contendo logs de exceção, falhas de teste e timeout.
@@ -166,13 +177,14 @@ GitHub Actions não será o sistema distribuído. Ele pode ser usado como gatilh
 4. Consultar o diagnóstico consolidado.
 5. Interromper um worker ou o líder e demonstrar a eleição/recuperação prevista para cada entrega.
 
-## 12. Riscos e limites
+## 13. Riscos e limites
 
 - **Dependência de IA externa:** mitigada por agentes determinísticos que mantêm a demonstração reproduzível.
 - **Escopo excessivo:** o MVP não edita nem executa código automaticamente.
 - **Dados sensíveis em logs:** os dados usados na demonstração serão sintéticos ou anonimizados.
 - **Complexidade de consenso:** a primeira entrega usará um algoritmo de eleição simples; mecanismos robustos de réplica ficam para a evolução.
+- **Execução de código sugerido:** qualquer teste futuro ocorrerá somente em ambiente isolado e descartável, sem credenciais de produção e com aprovação humana antes de alterações permanentes.
 
-## 13. Critérios de sucesso
+## 14. Critérios de sucesso
 
 O projeto será considerado bem-sucedido quando for possível executar o sistema localmente com múltiplos nós, processar uma entrada dividida entre agentes, observar os mecanismos distribuídos escolhidos e obter um diagnóstico consolidado com evidências rastreáveis.
