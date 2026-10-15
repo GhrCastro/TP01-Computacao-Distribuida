@@ -1,5 +1,16 @@
 # Trabalho Prático - Computação Distribuída
 
+> ## Release: primeira entrega — 1º de novembro de 2026
+>
+> Nesta branch, o foco é entregar um sistema distribuído funcional com ao menos dois nós, comunicação por RPC/gRPC, relógios lógicos e eleição de líder. Também devemos produzir o relatório SBC de até 4 páginas com problema, arquitetura, requisitos implementados, desafios e responsabilidades do grupo.
+>
+> Trabalho dividido entre quatro integrantes:
+>
+> - [Integrante 1 — tema, escopo e relatório-base](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/7)
+> - [Integrante 2 — arquitetura, gRPC/RPC e nó coordenador](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/8)
+> - [Integrante 3 — relógios lógicos e testes de ordenação](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/9)
+> - [Integrante 4 — eleição de líder, integração e demonstração](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/10)
+
 Pontifícia Universidade Católica de Minas Gerais - Instituto de Ciências Exatas e Informática  
 Computação Distribuída - Ciência da Computação, Coração Eucarístico, 2026.2  
 Professor: Luigi D. C. Soares
