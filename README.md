@@ -15,6 +15,11 @@ Pontifícia Universidade Católica de Minas Gerais - Instituto de Ciências Exat
 Computação Distribuída - Ciência da Computação, Coração Eucarístico, 2026.2  
 Professor: Luigi D. C. Soares
 
+## Proposta do projeto
+
+- [Documento detalhado em Markdown](docs/proposta-debugmesh.md)
+- [Versão web da proposta](https://ghrcastro.github.io/TP01-Computacao-Distribuida/)
+
 ## Objetivo
 
 Este trabalho prático tem o objetivo de aprofundar o estudo e o desenvolvimento de sistemas distribuídos. O grupo deverá projetar e implementar uma solução distribuída para resolver um problema de sua escolha dentro desse contexto.
