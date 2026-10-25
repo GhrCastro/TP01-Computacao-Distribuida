@@ -1,5 +1,13 @@
 # DebugMesh — MVP executável (Entrega 1)
 
+## Integrantes
+
+- Gustavo Castro
+- Vitor De Meira Gomes
+- Mateus R Fernandes
+- Felipe Barros
+- Arthur Carvalho
+
 Sistema distribuído para análise de logs de CI/CD com **gRPC**, **relógios lógicos de Lamport** e **eleição Bully simplificada**. Funciona sem IA, credenciais externas ou integração obrigatória com GitHub Actions. Veja `docs/architecture-entrega1.md` para os contratos e limites.
 
 > ATENÇÃO: a primeira entrega não inclui replicação, consenso, persistência nem reprocessamento automático após falhas. O estado reside na memória do coordenador ativo. A eleição é uma demonstração didática para uma rede local sem partições adversariais.
