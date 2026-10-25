@@ -1,7 +1,5 @@
 syntax = "proto3";
 package debugmesh.v1;
-
-// Wire contract for Entrega 1; forward-compatible fields can be added later.
 service CoordinatorService {
   rpc SubmitLogs(SubmitLogsRequest) returns (SubmitLogsResponse);
   rpc GetAnalysisStatus(GetAnalysisStatusRequest) returns (GetAnalysisStatusResponse);

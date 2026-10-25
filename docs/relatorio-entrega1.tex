@@ -1,0 +1,80 @@
+\documentclass[12pt]{article}
+\usepackage{sbc-template}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{array}
+\sloppy
+\title{DebugMesh: Distribui\c{c}\~ao de An\'alise de Logs com RPC, Rel\'ogios L\'ogicos e Elei\c{c}\~ao de L\'ider}
+\author{[Nome do Integrante 1], [Nome do Integrante 2],\\{}[Nome do Integrante 3], [Nome do Integrante 4]}
+\address{Ci\^encia da Computa\c{c}\~ao -- PUC Minas, Cora\c{c}\~ao Eucar\'istico\\Disciplina: Computa\c{c}\~ao Distribu\'ida -- Prof. Luigi D. C. Soares\\2026/2}
+\begin{document}
+\maketitle
+\begin{resumo}
+Este artigo apresenta a primeira entrega do DebugMesh, um prot\'otipo de servi\c{c}o distribu\'ido para an\'alise de logs de pipelines de integra\c{c}\~ao cont\'inua. O sistema divide registros em lotes, distribui o trabalho entre processos independentes por gRPC, aplica regras de diagn\'ostico e consolida evid\^encias. A implementa\c{c}\~ao inclui rel\'ogios l\'ogicos de Lamport, elei\c{c}\~ao simplificada de l\'ider e tratamento expl\'icito de indisponibilidade. Descrevem-se arquitetura, mecanismos, resultados dos testes e limita\c{c}\~oes.
+\end{resumo}
+
+\section{Introdu\c{c}\~ao e problema}
+Falhas em pipelines de integra\c{c}\~ao cont\'inua podem envolver compila\c{c}\~ao, testes e infraestrutura, gerando extensos registros para investiga\c{c}\~ao. O DebugMesh foi proposto para demonstrar como lotes independentes de logs podem ser classificados em paralelo por processos conectados por rede. Sua entrada \'e um arquivo de logs; a sa\'ida \'e uma cole\c{c}\~ao de evid\^encias, categorias, hip\'oteses de causa, sugest\~oes de verifica\c{c}\~ao e identificadores dos workers participantes. O sistema n\~ao modifica c\'odigo automaticamente e n\~ao depende de uma API externa de intelig\^encia artificial.
+
+Nesta entrega, o foco \'e o uso de tr\^es mecanismos de sistemas distribu\'idos: comunica\c{c}\~ao RPC, ordena\c{c}\~ao causal por rel\'ogios l\'ogicos e elei\c{c}\~ao de l\'ider. O trabalho foi desenvolvido em Python e usa gRPC com Protocol Buffers para estabelecer contratos entre os n\'os.
+
+\section{Arquitetura e protocolo}
+O cliente submete os registros ao coordenador ativo, que cria tarefas identificadas por \texttt{analysis\_id} e \texttt{task\_id}. Cada lote segue por \texttt{AssignTask} para um dos workers; eles processam as linhas e retornam resultados estruturados. O coordenador agrega os diagn\'osticos, preserva os resultados em mem\'oria e exp\~oe \texttt{GetAnalysisStatus} para consulta.
+
+\begin{center}
+\small
+\begin{tabular}{c}
+\fbox{Cliente: SubmitLogs / GetAnalysisStatus}\\[5pt]
+$\downarrow$ gRPC\\[3pt]
+\fbox{Coordenador ativo: fila + agregador}\\[5pt]
+$\downarrow$ AssignTask, em paralelo\\[3pt]
+\fbox{Worker A}\quad\fbox{Worker B}\quad\fbox{Worker C}\\[5pt]
+$\uparrow$ resultados com evid\^encias e timestamps
+\end{tabular}
+\end{center}
+
+O prot\'otipo tamb\'em disponibiliza um segundo processo eleg\'ivel \`a coordena\c{c}\~ao para demonstra\c{c}\~ao de elei\c{c}\~ao. Cada candidato conhece previamente o endere\c{c}o e a prioridade dos demais. O contrato em \texttt{debugmesh.proto} especifica \texttt{Envelope} com identificador da requisi\c{c}\~ao, emissor e timestamp l\'ogico. Os workers retornam \texttt{Finding}, incluindo categoria e evid\^encias. A execu\c{c}\~ao local utiliza dois coordenadores candidatos e tr\^es workers; para demonstrar distribui\c{c}\~ao de lotes, os tr\^es workers recebem subtarefas distintas.
+
+\section{Mecanismos distribu\'idos}
+\subsection{Comunica\c{c}\~ao RPC e paralelismo}
+O cliente usa \texttt{SubmitLogs} para registrar a an\'alise e \texttt{GetAnalysisStatus} para consultar sua evolu\c{c}\~ao. Internamente, o coordenador despacha \texttt{AssignTask} de forma concorrente por gRPC. O tamanho dos lotes e os endere\c{c}os dos workers s\~ao configur\'aveis. Cada worker usa regras determin\'isticas para identificar falhas em compila\c{c}\~ao, testes, conex\~ao e exce\c{c}\~oes. O identificador do worker em cada resultado permite verificar a distribui\c{c}\~ao efetiva.
+
+\subsection{Rel\'ogio l\'ogico de Lamport}
+Cada n\'o possui contador protegido contra acessos concorrentes. Antes de emitir uma mensagem, incrementa seu rel\'ogio; ao receber uma mensagem com timestamp $T_m$, atualiza o contador para $L \leftarrow \max(L,T_m)+1$. Esses timestamps possibilitam registrar rela\c{c}\~oes causais entre eventos internos do DebugMesh, embora n\~ao reconstruam a ordem cronol\'ogica dos eventos que originaram os logs.
+
+\subsection{Elei\c{c}\~ao de l\'ider}
+Foi implementada uma variante did\'atica do algoritmo Bully. O candidato inicia uma elei\c{c}\~ao solicitando resposta de outros candidatos com prioridade superior. Se nenhum responder no prazo, declara-se l\'ider e anuncia sua escolha aos pares. O coordenador que sabe n\~ao ser l\'ider recusa submiss\~oes com \texttt{FAILED\_PRECONDITION}; processos secund\'arios monitoram a conectividade do l\'ider para iniciar nova elei\c{c}\~ao diante de sua queda. N\~ao existe qu\'orum nem consenso, portanto parti\c{c}\~oes de rede podem produzir lideran\c{c}as conflitantes.
+
+\section{Testes, desafios e limita\c{c}\~oes}
+Os testes locais foram executados com \texttt{pytest} e servidores gRPC em processos independentes. Foram aprovados seis cen\'arios: regra do rel\'ogio de Lamport, classifica\c{c}\~ao determin\'istica, serializa\c{c}\~ao Protobuf, an\'alise entre tr\^es workers com tratamento de argumentos inv\'alidos e recurso inexistente, indisponibilidade de worker e elei\c{c}\~ao com substitui\c{c}\~ao do l\'ider. A contagem de seis testes refere-se ao ambiente local de desenvolvimento e deve ser reproduzida pelo grupo no ambiente de demonstra\c{c}\~ao.
+
+\begin{table}[ht]
+\centering\small
+\caption{Mecanismos verificados localmente no prot\'otipo.}
+\begin{tabular}{p{3.2cm}p{9cm}}
+\toprule
+Aspecto & Evid\^encia de teste \\
+\midrule
+RPC & Submiss\~ao e consulta do diagn\'ostico; participa\c{c}\~ao de tr\^es workers. \\
+Lamport & Timestamps nas mensagens e rela\c{c}\~ao de causalidade nos testes. \\
+Elei\c{c}\~ao & L\'ider de maior prioridade eleito; sucess\~ao ap\'os seu encerramento. \\
+Falha & Worker indispon\'ivel produz estado de erro observ\'avel, sem sucesso falso. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O principal desafio foi definir contratos que permitissem execu\c{c}\~ao independente entre os servi\c{c}os sem confundir agentes de diagn\'ostico com coordena\c{c}\~ao. O estado de an\'alises \'e mantido em mem\'oria: caso o l\'ider caia, as an\'alises previamente aceitas n\~ao s\~ao recuperadas pelo sucessor. Reatribui\c{c}\~ao autom\'atica, replica\c{c}\~ao, autentica\c{c}\~ao e toler\^ancia a parti\c{c}\~oes ficam fora do escopo desta entrega. O teste local tamb\'em n\~ao substitui a valida\c{c}\~ao em dois computadores f\'isicos conectados em rede.
+
+\section{Participa\c{c}\~ao dos integrantes e considera\c{c}\~oes finais}
+\textbf{Preencher antes do envio com nomes e contribui\c{c}\~oes efetivas:} [Integrante 1: escopo, logs, relat\'orio]; [Integrante 2: arquitetura, contrato gRPC, coordenador]; [Integrante 3: Lamport, instrumenta\c{c}\~ao e testes]; [Integrante 4: elei\c{c}\~ao e demonstra\c{c}\~ao]. Essas atribui\c{c}\~oes representam o planejamento inicial, n\~ao uma certifica\c{c}\~ao de autoria individual.
+
+O prot\'otipo demonstra comunica\c{c}\~ao, distribui\c{c}\~ao de trabalho e mecanismos de coordena\c{c}\~ao entre processos. Como continuidade, prop\~oem-se persist\^encia e replica\c{c}\~ao de tarefas, retries com idempot\^encia e experimentos de desempenho em m\'aquinas separadas.
+
+\begin{thebibliography}{1}
+\bibitem{lamport} L. Lamport. Time, Clocks, and the Ordering of Events in a Distributed System. \textit{Communications of the ACM}, 21(7), 1978.
+\bibitem{grpc} gRPC Authors. gRPC Documentation. \url{https://grpc.io/docs/}.
+\end{thebibliography}
+\end{document}

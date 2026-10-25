@@ -100,3 +100,8 @@ Ferramentas de IA podem auxiliar a escrita, mas textos praticamente gerados de f
 
 - Entrega 1: 10 pontos; data a consultar no Canvas.
 - Entrega 2: 20 pontos; data e apresentação a consultar no Canvas e no plano de disciplina.
+
+
+## Execução da primeira entrega (MVP)
+
+[Guia completo de instalação, execução e testes](README-entrega1.md). Implementação: `src/debugmesh/`, contrato gRPC: `proto/debugmesh/v1/debugmesh.proto`, relatório: `docs/relatorio-entrega1.tex`.
