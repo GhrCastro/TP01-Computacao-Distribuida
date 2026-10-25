@@ -1,0 +1,57 @@
+name: DebugMesh Entrega 1 - testes
+
+on:
+  push:
+    branches: [release/primeira-entrega]
+  pull_request:
+    branches: [release/primeira-entrega]
+  workflow_dispatch:
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install -e '.[dev]'
+      - name: Test local RPC, logical clocks and leader election
+        run: python -m pytest -q
+
+  compose-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CLI
+        run: python -m pip install -e .
+      - name: Start distributed cluster
+        run: docker compose up --build -d
+      - name: Exercise elected leader and failover
+        run: |
+          set -euo pipefail
+          for i in {1..20}; do
+            if python -m debugmesh submit --coordinator localhost:50051 --file samples/ci_pipeline.log --wait; then break; fi
+            if [[ "$i" == "20" ]]; then exit 1; fi
+            sleep 1
+          done
+          docker compose stop coordinator-a
+          for i in {1..20}; do
+            if python -m debugmesh submit --coordinator localhost:50052 --file samples/ci_pipeline.log --wait; then break; fi
+            if [[ "$i" == "20" ]]; then exit 1; fi
+            sleep 1
+          done
+      - name: Show logs
+        if: always()
+        run: docker compose logs --tail=100
+      - name: Shutdown
+        if: always()
+        run: docker compose down -v
