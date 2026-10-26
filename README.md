@@ -4,7 +4,7 @@
 >
 > Nesta branch, o foco é entregar um sistema distribuído funcional com ao menos dois nós, comunicação por RPC/gRPC, relógios lógicos e eleição de líder. Também devemos produzir o relatório SBC de até 4 páginas com problema, arquitetura, requisitos implementados, desafios e responsabilidades do grupo.
 >
-> Trabalho dividido entre quatro integrantes:
+> Grupo composto por cinco integrantes. As issues #7–#10 organizam quatro frentes técnicas:
 >
 > - [Integrante 1 — tema, escopo e relatório-base](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/7)
 > - [Integrante 2 — arquitetura, gRPC/RPC e nó coordenador](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/8)

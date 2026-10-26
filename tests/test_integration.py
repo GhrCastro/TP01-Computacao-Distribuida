@@ -3,6 +3,7 @@ import socket
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from contextlib import contextmanager
 import grpc
@@ -130,3 +131,133 @@ def test_bully_election_and_failover():
                 if exc.code()!=grpc.StatusCode.FAILED_PRECONDITION or time.monotonic()>deadline:raise
                 time.sleep(.1)
         assert wait_done(low,r.analysis_id).state==pb.ANALYSIS_COMPLETED
+
+        # When the original higher-priority coordinator returns, it must
+        # supersede the temporary leader and be announced to the lower peer.
+        env={**os.environ,'PYTHONPATH':str(ROOT/'src'),'PYTHONUNBUFFERED':'1'}
+        restarted=subprocess.Popen([sys.executable,'-m','debugmesh',*cmds[1]],
+                                   stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env=env)
+        ps.append(restarted)
+        ready(high)
+        deadline=time.monotonic()+9
+        while True:
+            try:
+                promoted=submit(high,['FAILED tests/again.py'])
+                # During convergence, the former leader can briefly keep its
+                # old role; success is eventual rejection after announcement.
+                try:
+                    submit(low,['FAILED tests/not-leader-again.py'])
+                except grpc.RpcError as exc:
+                    if exc.code()==grpc.StatusCode.FAILED_PRECONDITION:
+                        break
+                    raise
+            except grpc.RpcError:
+                pass
+            if time.monotonic()>deadline:
+                pytest.fail('Returning higher-priority node failed to reclaim leadership')
+            time.sleep(.1)
+        assert wait_done(high,promoted.analysis_id).state==pb.ANALYSIS_COMPLETED
+
+
+def test_many_concurrent_analyses_do_not_starve_worker_dispatch():
+    """Regression: analysis runners cannot exhaust the RPC task executor."""
+    worker=f'127.0.0.1:{freeport()}'
+    coordinator=f'127.0.0.1:{freeport()}'
+    cmds=[['worker','--id','w1','--bind',worker,'--delay','0.15'],
+          ['coordinator','--id','main','--bind',coordinator,'--priority','20',
+           '--workers',worker,'--batch-size','1','--worker-timeout','1.8']]
+    with processes(cmds):
+        ready(worker); ready(coordinator)
+        for i in range(50):
+            try:
+                ready_job=submit(coordinator,['FAILED tests/smoke.py'])
+                break
+            except grpc.RpcError as exc:
+                if exc.code()!=grpc.StatusCode.FAILED_PRECONDITION:
+                    raise
+                time.sleep(0.05)
+        else:
+            pytest.fail('Coordinator did not elect itself')
+        assert wait_done(coordinator,ready_job.analysis_id).state==pb.ANALYSIS_COMPLETED
+
+        with ThreadPoolExecutor(max_workers=20) as pool:
+            accepted=list(pool.map(lambda i:submit(coordinator,[f'FAILED tests/test_{i}.py']),range(20)))
+
+        for job in accepted:
+            result=wait_done(coordinator,job.analysis_id,timeout=12)
+            assert result.state==pb.ANALYSIS_COMPLETED, result.error
+            assert len(result.findings)==1
+
+
+def test_lower_priority_stale_announcement_is_rejected():
+    """A running higher-priority candidate must never demote itself for a stale announcement."""
+    high=f'127.0.0.1:{freeport()}'
+    low=f'127.0.0.1:{freeport()}'
+    worker=f'127.0.0.1:{freeport()}'
+    cmds=[['worker','--id','w1','--bind',worker],
+          ['coordinator','--id','high','--bind',high,'--priority','20',
+           '--peers',f'low@10@{low}','--workers',worker,'--election-timeout','0.3'],
+          ['coordinator','--id','low','--bind',low,'--priority','10',
+           '--peers',f'high@20@{high}','--workers',worker,'--election-timeout','0.3']]
+    with processes(cmds):
+        for address in [high,low,worker]:
+            ready(address)
+        deadline=time.monotonic()+8
+        while True:
+            try:
+                job=submit(high,['FAILED tests/leader.py'])
+                with pytest.raises(grpc.RpcError) as error:
+                    submit(low,['FAILED tests/not-leader.py'])
+                assert error.value.code()==grpc.StatusCode.FAILED_PRECONDITION
+                break
+            except (grpc.RpcError,AssertionError):
+                if time.monotonic()>deadline:
+                    pytest.fail('Initial leader election did not converge')
+                time.sleep(.1)
+        assert wait_done(high,job.analysis_id).state==pb.ANALYSIS_COMPLETED
+
+        with grpc.insecure_channel(high) as channel:
+            election=rpc.ElectionServiceStub(channel)
+            ack=election.AnnounceLeader(pb.LeaderAnnouncement(
+                meta=pb.Envelope(sender_id='low',logical_timestamp=15),
+                leader_id='low',leader_priority=10,term=15),timeout=2)
+        assert not ack.accepted, 'High priority coordinator accepted a stale lower-priority leader'
+        assert wait_done(high,submit(high,['FAILED tests/still-leader.py']).analysis_id).state==pb.ANALYSIS_COMPLETED
+
+
+def test_worker_findings_happen_before_final_coordinator_response():
+    worker=f'127.0.0.1:{freeport()}'
+    coord=f'127.0.0.1:{freeport()}'
+    cmds=[['worker','--id','worker','--bind',worker],
+          ['coordinator','--id','coord','--bind',coord,'--priority','20','--workers',worker]]
+    with processes(cmds):
+        ready(worker);ready(coord)
+        deadline=time.monotonic()+4
+        while True:
+            try: accepted=submit(coord,['FAILED tests/timestamp.py']);break
+            except grpc.RpcError as exc:
+                if exc.code()!=grpc.StatusCode.FAILED_PRECONDITION or time.monotonic()>deadline:
+                    raise
+                time.sleep(.1)
+        result=wait_done(coord,accepted.analysis_id)
+        assert result.state==pb.ANALYSIS_COMPLETED
+        assert result.findings
+        # The coordinator can only respond COMPLETED after receiving worker findings.
+        assert all(f.logical_timestamp < result.meta.logical_timestamp for f in result.findings)
+
+
+def test_election_rejects_mismatched_candidate_priority():
+    high=f'127.0.0.1:{freeport()}'
+    low=f'127.0.0.1:{freeport()}'
+    absent_worker=f'127.0.0.1:{freeport()}'
+    commands=[['coordinator','--id','high','--bind',high,'--priority','20',
+               '--peers',f'low@10@{low}','--workers',absent_worker,'--election-timeout','0.2']]
+    with processes(commands):
+        ready(high)
+        with grpc.insecure_channel(high) as ch:
+            election=rpc.ElectionServiceStub(ch)
+            with pytest.raises(grpc.RpcError) as exc:
+                election.Election(pb.ElectionRequest(
+                    meta=pb.Envelope(sender_id='low',logical_timestamp=4),
+                    candidate_priority=99),timeout=2)
+            assert exc.value.code()==grpc.StatusCode.INVALID_ARGUMENT
