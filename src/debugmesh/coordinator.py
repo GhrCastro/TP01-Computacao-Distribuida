@@ -30,7 +30,10 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
         self.leader=None
         self.leader_priority=-1
         self._jobs={}
-        self._pool=ThreadPoolExecutor(max_workers=max(8,len(workers)*2+2))
+        # Separate executors avoid a thread-starvation deadlock: an analysis
+        # must never block while waiting for work queued behind other analyses.
+        self._analysis_pool=ThreadPoolExecutor(max_workers=4,thread_name_prefix='analysis')
+        self._rpc_pool=ThreadPoolExecutor(max_workers=max(8,len(workers)*4),thread_name_prefix='worker-rpc')
         self._stop=threading.Event()
 
     def _peer(self, address):
@@ -53,7 +56,7 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
         lines=list(request.lines)
         with self._lock:
             self._jobs[analysis_id]={'state':pb.ANALYSIS_PENDING,'findings':[],'error':''}
-        self._pool.submit(self._process,analysis_id,lines)
+        self._analysis_pool.submit(self._process,analysis_id,lines)
         self.event('accepted',analysis_id=analysis_id,line_count=len(lines))
         return pb.SubmitLogsResponse(meta=self.send(request.meta.request_id),analysis_id=analysis_id,state=pb.ANALYSIS_PENDING)
 
@@ -78,7 +81,7 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
         for i,batch in enumerate(batches):
             addr=self.workers[i%len(self.workers)]
             task_id=f'{analysis_id}:{i}'
-            futures[self._pool.submit(self._send_task,addr,task_id,analysis_id,batch)]=(task_id,addr)
+            futures[self._rpc_pool.submit(self._send_task,addr,task_id,analysis_id,batch)]=(task_id,addr)
         findings=[]; errors=[]
         for future in as_completed(futures):
             task_id,addr=futures[future]
@@ -103,25 +106,58 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
             self.receive(reply.meta)
             return list(reply.findings)
 
-    # Election is intentionally not distributed consensus. Safety requires healthy LAN.
+    # Election is intentionally not distributed consensus. Safety requires a
+    # trusted local network without network partitions (see architecture docs).
+    def _announce_self_to_peers(self):
+        """Reassert leadership on hearing a delayed announcement from a lower node."""
+        for nid,_,addr in self.peers:
+            try:
+                with grpc.insecure_channel(addr) as ch:
+                    ack=rpc.ElectionServiceStub(ch).AnnounceLeader(
+                        pb.LeaderAnnouncement(meta=self.send(),leader_id=self.node_id,
+                                              leader_priority=self.priority,term=self.clock.value),
+                        timeout=self.election_timeout)
+                self.receive(ack.meta)
+            except grpc.RpcError:
+                self.event('leader_announce_unreachable',peer=nid)
+
     def Election(self,request,context):
         if not request.meta.sender_id:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT,'sender_id required')
+        # Reject conflicting priorities and unknown candidates. Peer membership
+        # is static for the teaching MVP (not an authentication mechanism).
+        known={nid:p for nid,p,_ in self.peers}
+        if known.get(request.meta.sender_id)!=request.candidate_priority:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT,'Unknown election candidate or mismatched priority')
         self.receive(request.meta)
         higher=self.priority>request.candidate_priority
         if higher and not self._stop.is_set():
-            # No new thread per request if election already running.
-            threading.Thread(target=self.run_election,daemon=True).start()
+            with self._lock:
+                is_leader=self.leader==self.node_id
+            action=self._announce_self_to_peers if is_leader else self.run_election
+            threading.Thread(target=action,daemon=True).start()
         return pb.ElectionResponse(meta=self.send(request.meta.request_id),higher_priority_alive=higher)
 
     def AnnounceLeader(self,request,context):
         if not request.leader_id or not request.meta.sender_id:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT,'leader_id and sender_id required')
+        if request.meta.sender_id!=request.leader_id:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT,'Announcement sender must be the leader')
         self.receive(request.meta)
         known={nid:p for nid,p,_ in self.peers}
         known[self.node_id]=self.priority
         if request.leader_id not in known or known[request.leader_id]!=request.leader_priority:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT,'Unknown leader identity or priority')
+        if request.leader_priority<self.priority:
+            # A live higher-priority candidate never accepts a lower candidate.
+            # Avoid demoting ourselves during a simultaneous/stale announcement.
+            with self._lock:
+                is_leader=self.leader==self.node_id
+            action=self._announce_self_to_peers if is_leader else self.run_election
+            threading.Thread(target=action,daemon=True).start()
+            self.event('leader_announcement_rejected',candidate=request.leader_id)
+            return pb.Ack(meta=self.send(request.meta.request_id),accepted=False,
+                          detail='Higher priority candidate is available')
         with self._lock:
             self.leader=request.leader_id
             self.leader_priority=request.leader_priority
@@ -152,17 +188,15 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
                 if self._leader_event.is_set():return
                 # No announcement; monitoring will trigger another election.
                 return
+            if self._leader_event.is_set():
+                # A valid higher-priority announcement arrived during this round.
+                return
             with self._lock:
                 self.leader=self.node_id
                 self.leader_priority=self.priority
                 self._leader_event.set()
             self.event('elected',leader=self.node_id)
-            for nid,_,addr in self.peers:
-                try:
-                    with grpc.insecure_channel(addr) as ch:
-                        ack=rpc.ElectionServiceStub(ch).AnnounceLeader(pb.LeaderAnnouncement(meta=self.send(),leader_id=self.node_id,leader_priority=self.priority,term=self.clock.value),timeout=self.election_timeout)
-                    self.receive(ack.meta)
-                except grpc.RpcError:pass
+            self._announce_self_to_peers()
         finally:
             self._election_lock.release()
 
@@ -185,7 +219,8 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
 
     def close(self):
         self._stop.set()
-        self._pool.shutdown(wait=False,cancel_futures=True)
+        self._analysis_pool.shutdown(wait=False,cancel_futures=True)
+        self._rpc_pool.shutdown(wait=False,cancel_futures=True)
 
 
 def serve_coordinator(node_id,address,priority,peers,workers,batch_size=3,worker_timeout=3,election_timeout=0.8):
