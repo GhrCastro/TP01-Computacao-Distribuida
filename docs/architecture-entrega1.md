@@ -39,7 +39,7 @@ worker-a      : localhost:50061
 worker-b      : localhost:50062
 worker-c      : localhost:50063
 ```
-Variáveis propostas: `DEBUGMESH_NODE_ID`, `DEBUGMESH_BIND_ADDRESS`, `DEBUGMESH_WORKER_ADDRESSES` (endereços separados por vírgula), `DEBUGMESH_COORDINATOR_PEERS` (id,priority,address), `DEBUGMESH_PRIORITY`, `DEBUGMESH_BATCH_SIZE`. Usar `0.0.0.0` apenas para bind de servidor em contêiner; clientes usam hostname/IP alcançável. O projeto ainda precisa implementar os processos e o comando de inicialização (issue #8/#3).
+Variáveis propostas: `DEBUGMESH_NODE_ID`, `DEBUGMESH_BIND_ADDRESS`, `DEBUGMESH_WORKER_ADDRESSES` (endereços separados por vírgula), `DEBUGMESH_COORDINATOR_PEERS` (id,priority,address), `DEBUGMESH_PRIORITY`, `DEBUGMESH_BATCH_SIZE`. Usar `0.0.0.0` apenas para bind de servidor em contêiner; clientes usam hostname/IP alcançável. Os processos e comandos de inicialização da Entrega 1 estão implementados em `src/debugmesh/cli.py`, `src/debugmesh/coordinator.py`, `src/debugmesh/worker.py` e `compose.yaml`; veja `README-entrega1.md` para execução e testes.
 
 ## Sequência de análise típica
 ```mermaid
