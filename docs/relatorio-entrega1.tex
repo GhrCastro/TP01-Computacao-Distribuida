@@ -53,20 +53,7 @@ Foi implementada uma variante did\'atica do algoritmo Bully. O candidato inicia 
 \section{Testes, desafios e limita\c{c}\~oes}
 Os testes locais foram executados com \texttt{pytest} e servidores gRPC em processos independentes. Foram aprovados treze testes automatizados (seis de unidade e sete de integra\c{c}\~ao): ordena\c{c}\~ao causal de Lamport, mensagens atrasadas, concorr\^encia com 1.200 eventos, classifica\c{c}\~ao, serializa\c{c}\~ao Protobuf, chamadas gRPC entre tr\^es workers, valida\c{c}\~ao de entradas e erros, indisponibilidade de worker, an\'alises concorrentes sem esgotamento do pool, elei\c{c}\~ao, sucess\~ao do l\'ider e rejei\c{c}\~ao de an\'uncios ou prioridades inconsistentes. A valida\c{c}\~ao automatizada no GitHub Actions (execu\c{c}\~ao 41158882709, em 30/10/2026) aprovou a su\'ite nas vers\~oes Python 3.11 e 3.12, al\'em de uma execu\c{c}\~ao em \mbox{Docker Compose}: as 12 linhas de amostra geraram seis diagn\'osticos distribu\'idos entre tr\^es workers. Ap\'os interromper o coordenador de maior prioridade, o secund\'ario assumiu a lideran\c{c}a e concluiu nova an\'alise. A demonstra\c{c}\~ao em cont\^eineres na rede virtual foi autorizada pelo professor; n\~ao se afirma ter executado o teste em computadores f\'isicos distintos.
 
-\begin{table}[ht]
-\centering\small
-\caption{Mecanismos verificados localmente no prot\'otipo.}
-\begin{tabular}{p{3.2cm}p{9cm}}
-\toprule
-Aspecto & Evid\^encia de teste \\
-\midrule
-RPC & Submiss\~ao e consulta do diagn\'ostico; participa\c{c}\~ao de tr\^es workers. \\
-Lamport & Timestamps nas mensagens e rela\c{c}\~ao de causalidade nos testes. \\
-Elei\c{c}\~ao & L\'ider de maior prioridade eleito; sucess\~ao ap\'os seu encerramento. \\
-Falha & Worker indispon\'ivel produz estado de erro observ\'avel, sem sucesso falso. \\
-\bottomrule
-\end{tabular}
-\end{table}
+
 
 O principal desafio foi definir contratos que permitissem execu\c{c}\~ao independente entre os servi\c{c}os sem confundir agentes de diagn\'ostico com coordena\c{c}\~ao. O estado de an\'alises \'e mantido em mem\'oria: caso o l\'ider caia, as an\'alises previamente aceitas n\~ao s\~ao recuperadas pelo sucessor. Reatribui\c{c}\~ao autom\'atica, replica\c{c}\~ao, autentica\c{c}\~ao e toler\^ancia a parti\c{c}\~oes ficam fora do escopo desta entrega. O ambiente de execu\c{c}\~ao utilizado foi o Docker Compose, conforme a modalidade aceita pelo professor.
 
