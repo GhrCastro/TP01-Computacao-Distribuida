@@ -1,0 +1,12 @@
+2026-10-25T10:00:00Z INFO pipeline started
+2026-10-25T10:00:01Z INFO checkout completed
+2026-10-25T10:00:02Z ERROR ModuleNotFoundError: No module named 'yaml'
+2026-10-25T10:00:03Z INFO dependency restore scheduled
+2026-10-25T10:00:04Z ERROR compilation failed in parser.py
+2026-10-25T10:00:05Z INFO compilation log written
+2026-10-25T10:00:06Z FAILED tests/test_checkout.py::test_empty_cart
+2026-10-25T10:00:07Z INFO retry test collection
+2026-10-25T10:00:08Z ERROR connection refused to postgres:5432
+2026-10-25T10:00:09Z INFO services restarted
+2026-10-25T10:00:10Z ERROR NullPointerException in CheckoutService:74
+2026-10-25T10:00:11Z FATAL deployment timed out
