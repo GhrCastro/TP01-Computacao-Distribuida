@@ -68,6 +68,22 @@ python -m pytest -q
 
 Testes de unidade + integração cobrem análise de logs, Protobuf, Lamport, três workers com processos distintos, chamadas gRPC, entradas inválidas, análise não encontrada, timeout/worker offline, eleição e troca de líder com queda simulada. Arquivos em `tests/`.
 
+## Conferência final da Entrega 1
+
+- **Testes:** a suíte atual possui 13 testes (6 unitários e 7 de integração). [CI de 26/10/2026 — sucesso](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/40321544511), para Python 3.11, Python 3.12 e Docker Compose. Evidências e cobertura em [docs/evidencias-entrega1.md](docs/evidencias-entrega1.md).
+- **Máquinas separadas:** seguir [docs/teste-multimaquinas-entrega1.md](docs/teste-multimaquinas-entrega1.md), coletar logs e capturas com os endereços reais. Os testes locais/Docker não provam uma execução entre computadores distintos.
+- **Relatório SBC:** fonte em [docs/relatorio-entrega1.tex](docs/relatorio-entrega1.tex). Antes de entregar, conferir a correspondência entre a implementação e os resultados, preencher as contribuições verdadeiras dos cinco integrantes, gerar o PDF e verificar o limite de **4 páginas**.
+
+Para compilar o relatório no Linux/WSL com `pdflatex` e `pdfinfo` disponíveis, a partir da raiz do repositório:
+
+```bash
+mkdir -p build
+TEXINPUTS="docs/sbc//:" pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build docs/relatorio-entrega1.tex
+pdfinfo build/relatorio-entrega1.pdf | grep Pages
+```
+
+A contagem indicada em `Pages:` não pode ultrapassar 4. Não enviar o arquivo final sem revisar as atribuições de cada integrante e sem documentar honestamente o teste LAN (ou a sua ausência).
+
 ## Como observar os mecanismos distribuídos
 - **RPC:** `SubmitLogs` e `GetAnalysisStatus` expostos no coordenador; `AssignTask` nos workers.
 - **Paralelismo:** jobs particionados em lotes, chamadas `AssignTask` concorrentes pelo coordenador e `worker_id` em cada finding.
