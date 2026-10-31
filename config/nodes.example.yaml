@@ -1,0 +1,10 @@
+# Referência; execução efetiva usa argumentos CLI ou compose.yaml
+coordinators:
+  - { id: coordinator-a, address: "localhost:50051", priority: 20 }
+  - { id: coordinator-b, address: "localhost:50052", priority: 10 }
+workers:
+  - { id: worker-a, address: "localhost:50061" }
+  - { id: worker-b, address: "localhost:50062" }
+  - { id: worker-c, address: "localhost:50063" }
+batch_size: 3
+timeouts: { worker_seconds: 3, election_seconds: 0.8 }
