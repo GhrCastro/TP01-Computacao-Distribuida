@@ -1,0 +1,20 @@
+services:
+  coordinator-a:
+    build: .
+    command: ["coordinator", "--id", "coordinator-a", "--bind", "0.0.0.0:50051", "--priority", "20", "--peers", "coordinator-b@10@coordinator-b:50052", "--workers", "worker-a:50061,worker-b:50062,worker-c:50063", "--batch-size", "3"]
+    ports: ["50051:50051"]
+    depends_on: [worker-a, worker-b, worker-c]
+  coordinator-b:
+    build: .
+    command: ["coordinator", "--id", "coordinator-b", "--bind", "0.0.0.0:50052", "--priority", "10", "--peers", "coordinator-a@20@coordinator-a:50051", "--workers", "worker-a:50061,worker-b:50062,worker-c:50063", "--batch-size", "3"]
+    ports: ["50052:50052"]
+    depends_on: [worker-a, worker-b, worker-c]
+  worker-a:
+    build: .
+    command: ["worker", "--id", "worker-a", "--bind", "0.0.0.0:50061", "--delay", "0.15"]
+  worker-b:
+    build: .
+    command: ["worker", "--id", "worker-b", "--bind", "0.0.0.0:50062", "--delay", "0.15"]
+  worker-c:
+    build: .
+    command: ["worker", "--id", "worker-c", "--bind", "0.0.0.0:50063", "--delay", "0.15"]
