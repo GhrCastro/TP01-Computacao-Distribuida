@@ -27,7 +27,7 @@ def parser():
     p=argparse.ArgumentParser(prog='debugmesh',description='DebugMesh Entrega 1')
     sub=p.add_subparsers(dest='command',required=True)
     w=sub.add_parser('worker'); w.add_argument('--id',required=True); w.add_argument('--bind',required=True);w.add_argument('--delay',type=float,default=0)
-    c=sub.add_parser('coordinator');c.add_argument('--id',required=True);c.add_argument('--bind',required=True);c.add_argument('--priority',required=True,type=int);c.add_argument('--peers',default='');c.add_argument('--workers',required=True);c.add_argument('--batch-size',type=int,default=3);c.add_argument('--worker-timeout',type=float,default=3);c.add_argument('--election-timeout',type=float,default=0.8)
+    c=sub.add_parser('coordinator');c.add_argument('--id',required=True);c.add_argument('--bind',required=True);c.add_argument('--priority',required=True,type=int);c.add_argument('--peers',default='');c.add_argument('--workers',required=True);c.add_argument('--batch-size',type=int,default=3);c.add_argument('--worker-timeout',type=float,default=3);c.add_argument('--election-timeout',type=float,default=0.8);c.add_argument('--max-task-attempts',type=int,default=3)
     submit=sub.add_parser('submit');submit.add_argument('--coordinator',required=True);submit.add_argument('--file',required=True);submit.add_argument('--wait',action='store_true');submit.add_argument('--wait-timeout',type=float,default=15)
     status=sub.add_parser('status');status.add_argument('--coordinator',required=True);status.add_argument('--analysis-id',required=True)
     return p
@@ -52,8 +52,8 @@ def main(argv=None):
             serve_worker(args.id,args.bind,args.delay)
         else:
             peers=_peers(args.peers)
-            if args.batch_size<1 or args.worker_timeout<=0 or args.election_timeout<=0:raise SystemExit('invalid batch size or timeout')
-            serve_coordinator(args.id,args.bind,args.priority,peers,[x for x in args.workers.split(',') if x],args.batch_size,args.worker_timeout,args.election_timeout)
+            if args.batch_size<1 or args.worker_timeout<=0 or args.election_timeout<=0 or args.max_task_attempts<1:raise SystemExit('invalid batch size, timeout or max-task-attempts')
+            serve_coordinator(args.id,args.bind,args.priority,peers,[x for x in args.workers.split(',') if x],args.batch_size,args.worker_timeout,args.election_timeout,args.max_task_attempts)
         return 0
     client=Node('cli')
     try:
