@@ -1,6 +1,7 @@
 """In-memory coordinator, RPC scheduler and simple Bully election demonstration.
 
-No quorum/consensus or state replication is implemented (Entrega 2 scope).
+No quorum/consensus or state replication is implemented. Worker retries are
+bounded and safe for this side-effect-free deterministic analysis only.
 """
 import logging
 import threading
@@ -14,8 +15,19 @@ from .generated import debugmesh_pb2 as pb, debugmesh_pb2_grpc as rpc
 LOG=logging.getLogger('debugmesh.coordinator')
 
 
+class TaskDispatchError(RuntimeError):
+    """All attempts failed (or a non-retryable RPC error occurred)."""
+
+
+RETRYABLE_CODES = frozenset({
+    grpc.StatusCode.UNAVAILABLE,
+    grpc.StatusCode.DEADLINE_EXCEEDED,
+    grpc.StatusCode.RESOURCE_EXHAUSTED,
+})
+
+
 class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServicer):
-    def __init__(self, node_id, address, priority, peers, workers, batch_size=3, worker_timeout=3.0, election_timeout=1.0):
+    def __init__(self, node_id, address, priority, peers, workers, batch_size=3, worker_timeout=3.0, election_timeout=1.0, max_task_attempts=3):
         super().__init__(node_id)
         self.address=address
         self.priority=priority
@@ -24,6 +36,9 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
         self.batch_size=batch_size
         self.worker_timeout=worker_timeout
         self.election_timeout=election_timeout
+        if max_task_attempts < 1:
+            raise ValueError('max_task_attempts must be >= 1')
+        self.max_task_attempts=max_task_attempts
         self._lock=threading.RLock()
         self._election_lock=threading.Lock()
         self._leader_event=threading.Event()
@@ -79,31 +94,64 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
         batches=[lines[i:i+self.batch_size] for i in range(0,len(lines),self.batch_size)]
         futures={}
         for i,batch in enumerate(batches):
-            addr=self.workers[i%len(self.workers)]
+            start_index=i%len(self.workers)
             task_id=f'{analysis_id}:{i}'
-            futures[self._rpc_pool.submit(self._send_task,addr,task_id,analysis_id,batch)]=(task_id,addr)
+            futures[self._rpc_pool.submit(
+                self._dispatch_task,start_index,task_id,analysis_id,batch
+            )]=task_id
         findings=[]; errors=[]
         for future in as_completed(futures):
-            task_id,addr=futures[future]
+            task_id=futures[future]
             try:
-                result=future.result()
+                result,addr=future.result()
                 findings.extend(result)
                 self.event('task_result',task_id=task_id,worker=addr,findings=len(result))
-            except grpc.RpcError as exc:
-                errors.append(f'{task_id} -> {addr}: {exc.code().name}')
+            except TaskDispatchError as exc:
+                errors.append(f'{task_id}: {exc}')
             except Exception as exc:
-                errors.append(f'{task_id} -> {addr}: {type(exc).__name__}')
+                errors.append(f'{task_id}: {type(exc).__name__}')
         findings.sort(key=lambda x: (x.task_id, x.evidence[0] if x.evidence else ''))
         with self._lock:
             self._jobs[analysis_id].update(findings=findings,error='; '.join(errors),state=pb.ANALYSIS_FAILED if errors else pb.ANALYSIS_COMPLETED)
         self.event('analysis_done',analysis_id=analysis_id,findings=len(findings),errors=len(errors))
 
-    def _send_task(self,address,task_id,analysis_id,lines):
+    def _dispatch_task(self,start_index,task_id,analysis_id,lines):
+        """Retry transient RPC errors, preferring another worker on each attempt.
+
+        Workers only compute findings; no external side effects are performed.
+        Keep the same task_id to avoid duplicate findings in the aggregation.
+        """
+        failures=[]
+        for attempt in range(1,self.max_task_attempts+1):
+            address=self.workers[(start_index+attempt-1)%len(self.workers)]
+            try:
+                findings=self._send_task(address,task_id,analysis_id,lines,attempt)
+                if attempt>1:
+                    self.event('task_recovered',task_id=task_id,worker=address,
+                               attempt=attempt)
+                return findings,address
+            except grpc.RpcError as exc:
+                code=exc.code()
+                failures.append(f'{address}: {code.name}')
+                if code not in RETRYABLE_CODES or attempt==self.max_task_attempts:
+                    self.event('task_exhausted',task_id=task_id,attempts=attempt,
+                               failures=failures)
+                    raise TaskDispatchError('; '.join(failures)) from exc
+                next_address=self.workers[(start_index+attempt)%len(self.workers)]
+                self.event('task_retry',task_id=task_id,attempt=attempt+1,
+                           failed_worker=address,next_worker=next_address,
+                           error=code.name)
+        raise TaskDispatchError('No attempts performed')
+
+    def _send_task(self,address,task_id,analysis_id,lines,attempt=1):
         with grpc.insecure_channel(address) as ch:
             stub=rpc.WorkerServiceStub(ch)
-            req=pb.AssignTaskRequest(meta=self.send(),analysis_id=analysis_id,task_id=task_id,attempt=1,lines=lines)
+            req=pb.AssignTaskRequest(meta=self.send(),analysis_id=analysis_id,
+                                     task_id=task_id,attempt=attempt,lines=lines)
             reply=stub.AssignTask(req,timeout=self.worker_timeout)
             self.receive(reply.meta)
+            if reply.task_id!=task_id:
+                raise TaskDispatchError('Worker returned a different task_id')
             return list(reply.findings)
 
     # Election is intentionally not distributed consensus. Safety requires a
@@ -223,8 +271,9 @@ class Coordinator(Node, rpc.CoordinatorServiceServicer, rpc.ElectionServiceServi
         self._rpc_pool.shutdown(wait=False,cancel_futures=True)
 
 
-def serve_coordinator(node_id,address,priority,peers,workers,batch_size=3,worker_timeout=3,election_timeout=0.8):
-    c=Coordinator(node_id,address,priority,peers,workers,batch_size,worker_timeout,election_timeout)
+def serve_coordinator(node_id,address,priority,peers,workers,batch_size=3,worker_timeout=3,election_timeout=0.8,max_task_attempts=3):
+    c=Coordinator(node_id,address,priority,peers,workers,batch_size,worker_timeout,
+                  election_timeout,max_task_attempts)
     server=grpc.server(ThreadPoolExecutor(max_workers=16))
     rpc.add_CoordinatorServiceServicer_to_server(c,server)
     rpc.add_ElectionServiceServicer_to_server(c,server)
