@@ -4,12 +4,17 @@
 >
 > Nesta branch, o foco é entregar um sistema distribuído funcional com ao menos dois nós, comunicação por RPC/gRPC, relógios lógicos e eleição de líder. Também devemos produzir o relatório SBC de até 4 páginas com problema, arquitetura, requisitos implementados, desafios e responsabilidades do grupo.
 >
-> Grupo composto por cinco integrantes. As issues #7–#10 organizam quatro frentes técnicas:
+> Grupo composto por cinco integrantes, com responsabilidades organizadas nas seguintes frentes:
 >
-> - [Integrante 1 — tema, escopo e relatório-base](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/7)
-> - [Integrante 2 — arquitetura, gRPC/RPC e nó coordenador](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/8)
-> - [Integrante 3 — relógios lógicos e testes de ordenação](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/9)
-> - [Integrante 4 — eleição de líder, integração e demonstração](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues/10)
+> - **Gustavo Castro:** arquitetura, requisitos, integração e documentação técnica;
+> - **Vitor De Meira Gomes:** contratos Protocol Buffers, comunicação gRPC, serviços RPC e CLI;
+> - **Mateus R Fernandes:** workers, divisão de lotes, paralelismo, diagnóstico e agregação;
+> - **Felipe Barros:** relógios lógicos de Lamport, instrumentação e testes de causalidade;
+> - **Arthur Carvalho:** eleição Bully, tratamento de falhas, Docker Compose e GitHub Actions.
+>
+> As questões [#7–#10](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues) registraram as frentes do planejamento inicial; o detalhamento da divisão em cinco frentes está no relatório SBC.
+>
+> **Validação da Entrega 1:** [workflow Docker e testes concluídos com sucesso](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709). O professor confirmou que a demonstração com Docker é aceita.
 
 Pontifícia Universidade Católica de Minas Gerais - Instituto de Ciências Exatas e Informática  
 Computação Distribuída - Ciência da Computação, Coração Eucarístico, 2026.2  

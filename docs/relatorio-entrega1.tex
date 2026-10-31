@@ -51,7 +51,7 @@ Cada n\'o possui contador protegido contra acessos concorrentes. Antes de emitir
 Foi implementada uma variante did\'atica do algoritmo Bully. O candidato inicia uma elei\c{c}\~ao solicitando resposta de outros candidatos com prioridade superior. Se nenhum responder no prazo, declara-se l\'ider e anuncia sua escolha aos pares. O coordenador que sabe n\~ao ser l\'ider recusa submiss\~oes com \texttt{FAILED\_PRECONDITION}; processos secund\'arios monitoram a conectividade do l\'ider para iniciar nova elei\c{c}\~ao diante de sua queda. N\~ao existe qu\'orum nem consenso, portanto parti\c{c}\~oes de rede podem produzir lideran\c{c}as conflitantes.
 
 \section{Testes, desafios e limita\c{c}\~oes}
-Os testes locais foram executados com \texttt{pytest} e servidores gRPC em processos independentes. Foram aprovados treze testes automatizados (seis de unidade e sete de integra\c{c}\~ao): ordena\c{c}\~ao causal de Lamport, mensagens atrasadas, concorr\^encia com 1.200 eventos, classifica\c{c}\~ao, serializa\c{c}\~ao Protobuf, chamadas gRPC entre tr\^es workers, valida\c{c}\~ao de entradas e erros, indisponibilidade de worker, an\'alises concorrentes sem esgotamento do pool, elei\c{c}\~ao, sucess\~ao do l\'ider e rejei\c{c}\~ao de an\'uncios ou prioridades inconsistentes. A valida\c{c}\~ao automatizada no GitHub Actions (execu\c{c}\~ao 41158522191, em 30/10/2026) aprovou a su\'ite nas vers\~oes Python 3.11 e 3.12, al\'em de uma execu\c{c}\~ao em \mbox{Docker Compose}: as 12 linhas de amostra geraram seis diagn\'osticos distribu\'idos entre tr\^es workers. Ap\'os interromper o coordenador de maior prioridade, o secund\'ario assumiu a lideran\c{c}a e concluiu nova an\'alise. A valida\c{c}\~ao em m\'aquinas f\'isicas distintas permanece pendente.
+Os testes locais foram executados com \texttt{pytest} e servidores gRPC em processos independentes. Foram aprovados treze testes automatizados (seis de unidade e sete de integra\c{c}\~ao): ordena\c{c}\~ao causal de Lamport, mensagens atrasadas, concorr\^encia com 1.200 eventos, classifica\c{c}\~ao, serializa\c{c}\~ao Protobuf, chamadas gRPC entre tr\^es workers, valida\c{c}\~ao de entradas e erros, indisponibilidade de worker, an\'alises concorrentes sem esgotamento do pool, elei\c{c}\~ao, sucess\~ao do l\'ider e rejei\c{c}\~ao de an\'uncios ou prioridades inconsistentes. A valida\c{c}\~ao automatizada no GitHub Actions (execu\c{c}\~ao 41158882709, em 30/10/2026) aprovou a su\'ite nas vers\~oes Python 3.11 e 3.12, al\'em de uma execu\c{c}\~ao em \mbox{Docker Compose}: as 12 linhas de amostra geraram seis diagn\'osticos distribu\'idos entre tr\^es workers. Ap\'os interromper o coordenador de maior prioridade, o secund\'ario assumiu a lideran\c{c}a e concluiu nova an\'alise. A demonstra\c{c}\~ao em cont\^eineres na rede virtual foi autorizada pelo professor; n\~ao se afirma ter executado o teste em computadores f\'isicos distintos.
 
 \begin{table}[ht]
 \centering\small
@@ -68,12 +68,24 @@ Falha & Worker indispon\'ivel produz estado de erro observ\'avel, sem sucesso fa
 \end{tabular}
 \end{table}
 
-O principal desafio foi definir contratos que permitissem execu\c{c}\~ao independente entre os servi\c{c}os sem confundir agentes de diagn\'ostico com coordena\c{c}\~ao. O estado de an\'alises \'e mantido em mem\'oria: caso o l\'ider caia, as an\'alises previamente aceitas n\~ao s\~ao recuperadas pelo sucessor. Reatribui\c{c}\~ao autom\'atica, replica\c{c}\~ao, autentica\c{c}\~ao e toler\^ancia a parti\c{c}\~oes ficam fora do escopo desta entrega. O teste local tamb\'em n\~ao substitui a valida\c{c}\~ao em dois computadores f\'isicos conectados em rede.
+O principal desafio foi definir contratos que permitissem execu\c{c}\~ao independente entre os servi\c{c}os sem confundir agentes de diagn\'ostico com coordena\c{c}\~ao. O estado de an\'alises \'e mantido em mem\'oria: caso o l\'ider caia, as an\'alises previamente aceitas n\~ao s\~ao recuperadas pelo sucessor. Reatribui\c{c}\~ao autom\'atica, replica\c{c}\~ao, autentica\c{c}\~ao e toler\^ancia a parti\c{c}\~oes ficam fora do escopo desta entrega. O ambiente de execu\c{c}\~ao utilizado foi o Docker Compose, conforme a modalidade aceita pelo professor.
 
 \section{Participa\c{c}\~ao dos integrantes e considera\c{c}\~oes finais}
-O grupo \textbf{\'e composto por Gustavo Castro, Vitor De Meira Gomes, Mateus R Fernandes, Felipe Barros e Arthur Carvalho}. A descri\c{c}\~ao das contribui\c{c}\~oes individuais de cada integrante dever\'a ser validada e inclu\'ida pelo grupo antes da submiss\~ao final.
+As responsabilidades da equipe foram organizadas em cinco frentes, com divis\~ao entre os integrantes:
 
-O prot\'otipo demonstra comunica\c{c}\~ao, distribui\c{c}\~ao de trabalho e mecanismos de coordena\c{c}\~ao entre processos. Como continuidade, prop\~oem-se persist\^encia e replica\c{c}\~ao de tarefas, retries com idempot\^encia e experimentos de desempenho em m\'aquinas separadas.
+\begin{itemize}
+\setlength{\itemsep}{1pt}
+\setlength{\parsep}{0pt}
+\item \textbf{Gustavo Castro --- arquitetura e integra\c{c}\~ao:} defini\c{c}\~ao de requisitos, modelagem da arquitetura distribu\'ida, integra\c{c}\~ao dos componentes e consolida\c{c}\~ao da documenta\c{c}\~ao e do relat\'orio.
+\item \textbf{Vitor De Meira Gomes --- comunica\c{c}\~ao gRPC:} contratos Protocol Buffers, comunica\c{c}\~ao cliente--coordenador, servi\c{c}os RPC, interface de linha de comando e valida\c{c}\~ao de requisi\c{c}\~oes.
+\item \textbf{Mateus R Fernandes --- workers e paralelismo:} implementa\c{c}\~ao dos workers, divis\~ao dos logs em lotes, distribui\c{c}\~ao concorrente, regras de diagn\'ostico, agrega\c{c}\~ao de resultados e testes de processamento.
+\item \textbf{Felipe Barros --- rel\'ogios l\'ogicos:} mecanismo de Lamport, timestamps nas mensagens, instrumenta\c{c}\~ao dos eventos de envio e recebimento e testes de causalidade e concorr\^encia.
+\item \textbf{Arthur Carvalho --- elei\c{c}\~ao e valida\c{c}\~ao:} algoritmo Bully, detec\c{c}\~ao de falhas e sucess\~ao de lideran\c{c}a, Docker Compose, testes de failover e automa\c{c}\~ao pelo GitHub Actions.
+\end{itemize}
+
+A integra\c{c}\~ao, os testes e a revis\~ao final foram considerados responsabilidades compartilhadas. O c\'odigo-fonte, as instru\c{c}\~oes de execu\c{c}\~ao e as evid\^encias est\~ao dispon\'iveis no reposit\'orio \url{https://github.com/GhrCastro/TP01-Computacao-Distribuida}, na branch \texttt{release/primeira-entrega}. A execu\c{c}\~ao automatizada verificada \'e a de n\'umero \texttt{41158882709}.
+
+O prot\'otipo demonstra comunica\c{c}\~ao, distribui\c{c}\~ao de trabalho e coordena\c{c}\~ao entre processos. Como continuidade, prop\~oem-se persist\^encia, replica\c{c}\~ao, retries com idempot\^encia e experimentos de desempenho.
 
 \begin{thebibliography}{1}
 \bibitem{lamport} L. Lamport. Time, Clocks, and the Ordering of Events in a Distributed System. \textit{Communications of the ACM}, 21(7), 1978.

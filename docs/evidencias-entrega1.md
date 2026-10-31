@@ -1,7 +1,7 @@
 # Evidências verificadas — DebugMesh, Entrega 1
 
 **Branch:** `release/primeira-entrega`  
-**Validação completa:** 30/10/2026 (31/10/2026 em UTC), [GitHub Actions #41158522191](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158522191), commit `43bb1232d373707afe054097c63cbde909cb4758`, conclusão **success**.
+**Validação completa:** 30/10/2026 (31/10/2026 em UTC), [GitHub Actions #41158882709](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158522191), commit `8a69731f99e9892268d00f9a287d0dc4404ace9a`, conclusão **success**.
 
 ## Escopo da verificação
 
@@ -15,10 +15,10 @@ A [proposta](proposta-debugmesh.md) define para a primeira entrega: pelo menos d
 - `sbc-report`: aprovado. Documento compilado pelo `pdflatex` e inspecionado por `pdfinfo`: **3 páginas (máximo 4)**.
 
 **Artefatos da execução:**
-- [Resultados e logs do Docker Compose](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158522191/artifacts/13025727700) — `summary.json`, respostas gRPC, logs de todos os processos e `compose-ps.txt`.
-- [Relatório SBC em PDF, metadados e log de compilação](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158522191/artifacts/13025609405).
-- [Testes em Python 3.11](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158522191/artifacts/13025967334).
-- [Testes em Python 3.12](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158522191/artifacts/13025334723).
+- [Resultados e logs do Docker Compose](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709/artifacts/13026366139) — `summary.json`, respostas gRPC, logs de todos os processos e `compose-ps.txt`.
+- [Relatório SBC em PDF, metadados e log de compilação](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709/artifacts/13025693174).
+- [Testes em Python 3.11](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709/artifacts/13026585329).
+- [Testes em Python 3.12](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709/artifacts/13026278756).
 
 ## Asserções aprovadas no teste de ponta a ponta
 
@@ -36,12 +36,15 @@ O workflow agora **falha** caso essas propriedades não se verifiquem. As evidê
 
 Os 13 testes Python cobrem regras de Lamport e concorrência do relógio, mensagens Protobuf, classificação de logs, chamadas reais gRPC, erros de entrada, worker indisponível, muitas análises concorrentes, eleição, recuperação de liderança, ordenação causal e rejeição de candidatos inconsistentes.
 
-## Pendências humanas / limites
+## Responsabilidades, validação aceita e limites
 
-1. **Contribuições individuais:** o relatório lista os cinco integrantes, mas a descrição das contribuições precisa ser confirmada pelo grupo antes de entrega final. Não atribuir trabalho fictício.
-2. **Máquinas físicas:** não foi realizado teste entre dois computadores físicos; a proposta armazenada no repositório exige múltiplos processos/nós e não explicita essa obrigatoriedade. Caso o professor tenha imposto uma regra adicional fora desse documento, será necessário testar nessa topologia.
-3. **Revisão acadêmica:** ler o PDF final e conferir dados de autoria e exigências adicionais da disciplina. Compilar e ter no máximo 4 páginas não substitui essa revisão.
-4. **Escopo da Entrega 2:** não há consenso, replicação, reatribuição automática de tarefas, TLS, nem recuperação do estado de análises do coordenador interrompido.
+A divisão de atividades em **cinco frentes**, conforme acordada pelo grupo, consta do relatório SBC e do README: Gustavo (arquitetura e integração), Vitor (gRPC e contratos), Mateus (workers e paralelismo), Felipe (Lamport) e Arthur (eleição, Docker e CI). A revisão final é compartilhada pelo grupo.
+
+O professor **autorizou a demonstração por Docker**, conforme informado pelo grupo. A validação executada abrangeu cinco processos independentes comunicando-se pela rede virtual do Docker Compose, e não dois computadores físicos. Nenhuma execução entre computadores físicos é alegada.
+
+A submissão oficial deve seguir o Canvas. O relatório PDF e o link do repositório são os materiais recomendados; a Entrega 1 exige explicitamente o **relatório no template SBC, com até quatro páginas e o papel de cada integrante**. A entrega deve ser revisada pelos integrantes antes da submissão.
+
+**Fora do escopo da Entrega 1:** consenso, replicação, reatribuição automática de tarefas, TLS e recuperação do estado de análises do coordenador interrompido.
 
 ## Reprodução
 
