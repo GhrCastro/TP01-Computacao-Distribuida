@@ -71,8 +71,8 @@ Testes de unidade + integração cobrem análise de logs, Protobuf, Lamport, tr�
 ## Conferência final da Entrega 1
 
 - **Testes:** a suíte atual possui 13 testes (6 unitários e 7 de integração). [CI de 26/10/2026 — sucesso](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/40321544511), para Python 3.11, Python 3.12 e Docker Compose. Evidências e cobertura em [docs/evidencias-entrega1.md](docs/evidencias-entrega1.md).
-- **Máquinas separadas:** seguir [docs/teste-multimaquinas-entrega1.md](docs/teste-multimaquinas-entrega1.md), coletar logs e capturas com os endereços reais. Os testes locais/Docker não provam uma execução entre computadores distintos.
-- **Relatório SBC:** fonte em [docs/relatorio-entrega1.tex](docs/relatorio-entrega1.tex). Antes de entregar, conferir a correspondência entre a implementação e os resultados, preencher as contribuições verdadeiras dos cinco integrantes, gerar o PDF e verificar o limite de **4 páginas**.
+- **Demonstração Docker autorizada:** o professor confirmou que a demonstração via Docker Compose é aceita nesta entrega. A validação no [GitHub Actions #41158882709](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709) comprovou comunicação entre cinco processos independentes em contêineres, sem afirmar que houve execução em computadores físicos distintos.
+- **Relatório SBC:** fonte em [docs/relatorio-entrega1.tex](docs/relatorio-entrega1.tex), com as cinco frentes de responsabilidade acordadas pelo grupo. O workflow compila o PDF, valida automaticamente o limite de **4 páginas** e disponibiliza o arquivo como artefato. Antes da submissão, os integrantes devem revisar e confirmar o texto final.
 
 Para compilar o relatório no Linux/WSL com `pdflatex` e `pdfinfo` disponíveis, a partir da raiz do repositório:
 
@@ -82,7 +82,7 @@ TEXINPUTS="docs/sbc//:" pdflatex -interaction=nonstopmode -halt-on-error -output
 pdfinfo build/relatorio-entrega1.pdf | grep Pages
 ```
 
-A contagem indicada em `Pages:` não pode ultrapassar 4. Não enviar o arquivo final sem revisar as atribuições de cada integrante e sem documentar honestamente o teste LAN (ou a sua ausência).
+A contagem indicada em `Pages:` não pode ultrapassar 4. O teste realizado foi em rede virtual Docker, modalidade aceita pelo professor; a submissão deve respeitar as instruções específicas do Canvas, com o PDF revisado e a referência à branch `release/primeira-entrega`.
 
 ## Como observar os mecanismos distribuídos
 - **RPC:** `SubmitLogs` e `GetAnalysisStatus` expostos no coordenador; `AssignTask` nos workers.
