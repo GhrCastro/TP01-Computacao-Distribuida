@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "debugmesh"
+version = "0.1.0"
+description = "Distributed CI log analysis for PUC Minas Computacao Distribuida"
+requires-python = ">=3.10"
+dependencies = ["grpcio>=1.59,<2", "protobuf>=4.25,<7"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "grpcio-tools>=1.59,<2"]
+
+[project.scripts]
+debugmesh = "debugmesh.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,5 +1,21 @@
 # Trabalho Prático - Computação Distribuída
 
+> ## Release: primeira entrega — 1º de novembro de 2026
+>
+> Nesta branch, o foco é entregar um sistema distribuído funcional com ao menos dois nós, comunicação por RPC/gRPC, relógios lógicos e eleição de líder. Também devemos produzir o relatório SBC de até 4 páginas com problema, arquitetura, requisitos implementados, desafios e responsabilidades do grupo.
+>
+> Grupo composto por cinco integrantes, com responsabilidades organizadas nas seguintes frentes:
+>
+> - **Gustavo Castro:** arquitetura, requisitos, integração e documentação técnica;
+> - **Vitor De Meira Gomes:** contratos Protocol Buffers, comunicação gRPC, serviços RPC e CLI;
+> - **Mateus R Fernandes:** workers, divisão de lotes, paralelismo, diagnóstico e agregação;
+> - **Felipe Barros:** relógios lógicos de Lamport, instrumentação e testes de causalidade;
+> - **Arthur Carvalho:** eleição Bully, tratamento de falhas, Docker Compose e GitHub Actions.
+>
+> As questões [#7–#10](https://github.com/GhrCastro/TP01-Computacao-Distribuida/issues) registraram as frentes do planejamento inicial; o detalhamento da divisão em cinco frentes está no relatório SBC.
+>
+> **Validação da Entrega 1:** [workflow Docker e testes concluídos com sucesso](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/41158882709). O professor confirmou que a demonstração com Docker é aceita.
+
 Pontifícia Universidade Católica de Minas Gerais - Instituto de Ciências Exatas e Informática  
 Computação Distribuída - Ciência da Computação, Coração Eucarístico, 2026.2  
 Professor: Luigi D. C. Soares
@@ -89,3 +105,8 @@ Ferramentas de IA podem auxiliar a escrita, mas textos praticamente gerados de f
 
 - Entrega 1: 10 pontos; data a consultar no Canvas.
 - Entrega 2: 20 pontos; data e apresentação a consultar no Canvas e no plano de disciplina.
+
+
+## Execução da primeira entrega (MVP)
+
+[Guia completo de instalação, execução e testes](README-entrega1.md). Implementação: `src/debugmesh/`, contrato gRPC: `proto/debugmesh/v1/debugmesh.proto`, relatório: `docs/relatorio-entrega1.tex`.
