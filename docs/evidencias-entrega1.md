@@ -1,12 +1,17 @@
 # Evidências de testes — DebugMesh, Entrega 1
 
-Validação executada em **25/10/2026** na branch `release/primeira-entrega`.
+Validações executadas em **25/10/2026** e **26/10/2026** na branch `release/primeira-entrega`. O registro abaixo distingue a evidência histórica da verificação mais recente.
 
 ## Testes automatizados
-- [GitHub Actions: execução 40225688989](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/40225688989), commit `5ee014d3a268d8d9b77cc90046fbc7a35823f72f`, conclusão `success`.
-- `python-tests (3.11)`: 6/6 testes aprovados.
-- `python-tests (3.12)`: 6/6 testes aprovados.
-- `compose-smoke`: aprovado, com build da imagem, orquestração dos serviços e teste de sucessão de líder.
+- **Execução mais recente confirmada:** [GitHub Actions 40321544511](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/40321544511), em 26/10/2026, commit `a2a7d8cf28423595a8f005bd1a0e597cc420d1b6`, conclusão `success`.
+- `python-tests (3.11)`: **13 testes** (6 unitários + 7 de integração), job aprovado.
+- `python-tests (3.12)`: **13 testes** (6 unitários + 7 de integração), job aprovado.
+- `compose-smoke`: aprovado com build, inicialização de coordenadores/workers, submissão ao líder, parada de `coordinator-a` e submissão ao `coordinator-b`.
+- Execução histórica: [GitHub Actions 40225688989](https://github.com/GhrCastro/TP01-Computacao-Distribuida/actions/runs/40225688989), commit `5ee014d3`, 6 testes por versão do Python e `compose-smoke` aprovado. Não usar essa contagem antiga como resultado final.
+
+## Cobertura da suíte atual (13 testes)
+- **Unidade (6):** regra Lamport, análise determinística, round-trip Protobuf, causalidade no ciclo de mensagens, timestamps atrasados e segurança com 1.200 incrementos concorrentes.
+- **Integração (7):** três workers via gRPC/erros de entrada, worker indisponível, eleição/failover, muitas análises concorrentes sem starvation, rejeição de anúncio de líder de menor prioridade, causalidade entre findings e resposta final, rejeição de prioridade de candidato inconsistente.
 
 ## Cenário Docker Compose
 1. Dois coordenadores (prioridades 20 e 10) e três workers receberam logs sintéticos via gRPC.
