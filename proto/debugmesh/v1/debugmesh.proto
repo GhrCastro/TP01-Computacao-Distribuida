@@ -1,0 +1,92 @@
+syntax = "proto3";
+package debugmesh.v1;
+service CoordinatorService {
+  rpc SubmitLogs(SubmitLogsRequest) returns (SubmitLogsResponse);
+  rpc GetAnalysisStatus(GetAnalysisStatusRequest) returns (GetAnalysisStatusResponse);
+}
+service WorkerService {
+  rpc AssignTask(AssignTaskRequest) returns (AssignTaskResponse);
+}
+service ElectionService {
+  rpc Election(ElectionRequest) returns (ElectionResponse);
+  rpc AnnounceLeader(LeaderAnnouncement) returns (Ack);
+}
+message Envelope {
+  string request_id = 1;
+  string sender_id = 2;
+  uint64 logical_timestamp = 3;
+}
+message LogLine {
+  uint64 line_number = 1;
+  string text = 2;
+}
+message SubmitLogsRequest {
+  Envelope meta = 1;
+  string source = 2;
+  repeated LogLine lines = 3;
+}
+message SubmitLogsResponse {
+  Envelope meta = 1;
+  string analysis_id = 2;
+  AnalysisState state = 3;
+}
+message GetAnalysisStatusRequest {
+  Envelope meta = 1;
+  string analysis_id = 2;
+}
+enum AnalysisState {
+  ANALYSIS_STATE_UNSPECIFIED = 0;
+  ANALYSIS_PENDING = 1;
+  ANALYSIS_RUNNING = 2;
+  ANALYSIS_COMPLETED = 3;
+  ANALYSIS_FAILED = 4;
+}
+message Finding {
+  string task_id = 1;
+  string worker_id = 2;
+  string category = 3;
+  repeated string evidence = 4;
+  string root_cause_hypothesis = 5;
+  string suggested_fix = 6;
+  string suggested_test = 7;
+  double confidence = 8;
+  uint64 logical_timestamp = 9;
+}
+message GetAnalysisStatusResponse {
+  Envelope meta = 1;
+  string analysis_id = 2;
+  AnalysisState state = 3;
+  repeated Finding findings = 4;
+  string error = 5;
+}
+message AssignTaskRequest {
+  Envelope meta = 1;
+  string analysis_id = 2;
+  string task_id = 3;
+  uint32 attempt = 4;
+  repeated LogLine lines = 5;
+}
+message AssignTaskResponse {
+  Envelope meta = 1;
+  string task_id = 2;
+  repeated Finding findings = 3;
+}
+message ElectionRequest {
+  Envelope meta = 1;
+  uint32 candidate_priority = 2;
+}
+message ElectionResponse {
+  Envelope meta = 1;
+  bool higher_priority_alive = 2;
+}
+message LeaderAnnouncement {
+  Envelope meta = 1;
+  string leader_id = 2;
+  uint32 leader_priority = 3;
+  uint64 term = 4;
+}
+message Ack {
+  Envelope meta = 1;
+  bool accepted = 2;
+  string detail = 3;
+}
