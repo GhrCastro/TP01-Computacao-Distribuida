@@ -2,9 +2,9 @@ name: DebugMesh Entrega 1 - testes e evidencias
 
 on:
   push:
-    branches: [release/primeira-entrega]
+    branches: [main, release/primeira-entrega, fix/entrega1-integracao-ci]
   pull_request:
-    branches: [release/primeira-entrega]
+    branches: [main, release/primeira-entrega]
   workflow_dispatch:
 
 permissions:
